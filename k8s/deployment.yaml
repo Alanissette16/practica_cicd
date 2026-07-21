@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/ctimbi/cicd-practica-sd:latest
+          image: ghcr.io/alanissette16/practica_cicd:latest
           ports:
             - containerPort: 3000
           env:
