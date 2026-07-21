@@ -10,7 +10,7 @@ RUN npm test
 FROM node:20-alpine AS runtime
 WORKDIR /app
 ARG APP_VERSION=v1-roto
-ARG APP_COLOR=yellow
+ARG APP_COLOR=pink
 ARG SIMULATE_FAILURE=false
 ENV NODE_ENV=production
 ENV APP_VERSION=$APP_VERSION
