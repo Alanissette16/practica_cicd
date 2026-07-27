@@ -1,42 +1,24 @@
 # Instalar Dependencias
 FROM node:22-alpine AS test
-
 WORKDIR /app
-
 COPY package*.json ./
-
 RUN npm ci
-
-COPY server.js ./
-COPY db.js ./
-COPY server.test.js ./
-COPY public ./public
-COPY data ./data
-
+COPY . .
 # Si las pruebas fallan, el build se detiene
 RUN npm test
 
 
 # Etapa final: ejecutar la app,
 FROM node:22-alpine AS runtime
-
 WORKDIR /app
-
 ENV NODE_ENV=production
 ENV PORT=3000
-
 COPY package*.json ./
-
 RUN npm ci --omit=dev && npm cache clean --force
-
 COPY server.js ./
 COPY db.js ./
 COPY public ./public
-
 RUN mkdir -p /app/data && chown -R node:node /app
-
 USER node
-
 EXPOSE 3000
-
 CMD ["node", "server.js"]
