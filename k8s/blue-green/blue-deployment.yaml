@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/alanissette16/practica_cicd:4a8ce933cae79f1b1f1310daf03eee6c59749fd9
+          image: ghcr.io/alanissette16/practica_cicd:b6578ba1e28afee6324f62286d294bcc5eb8dee1
 
           ports:
             - containerPort: 3000

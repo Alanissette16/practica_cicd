@@ -647,13 +647,87 @@ livenessProbe:
 Readiness falla → el pod no recibe tráfico.
 Liveness falla → Kubernetes puede reiniciar el contenedor.
 **Configurar el arranque lento en el Deployment Green, con los mismos pasos deel Deployment Blue**
+Subir los cambios al github hasta este momento para que se genere un nuevo Hash.
+Cuando esten en verde ambos build.
 
-
-```yaml
-
+Ejecutar esta linea de codigo en la terminal:
+```powershell
+git rev-parse HEAD
 ```
+**Actualizar temporalmente las imágenes de Blue y Green**
 ```yaml
-
+image: ghcr.io/alanissette16/practica_cicd:b6578ba1e28afee6324f62286d294bcc5eb8dee1
 ```
+Terminal 1: observar los pods Green
+```powershell
+kubectl get pods -l "app=cicd-practica-sd-bg,track=green" -w
+```
+Terminal 2: aplicar Green
+```powershell
+kubectl apply -f k8s/blue-green/green-deployment.yaml
+```
+![Salida](/images/Readiness.png)
+```powershell
+kubectl rollout status deployment/cicd-practica-sd-green
+```
+
+## Readiness realista con arranque lento
+
+Se agregó la variable de entorno STARTUP_DELAY_SECONDS con un valor de 30 segundos. Durante ese tiempo, la ruta /health responde con el código HTTP 503 y el estado starting, simulando que la aplicación todavía está conectándose a una base de datos.
+
+El readinessProbe consulta la ruta /health periódicamente. Mientras recibe una respuesta 503, el contenedor permanece ejecutándose, pero el pod aparece como 0/1 Ready y Kubernetes no lo agrega a los endpoints del Service. Cuando finalizan los 30 segundos, /health responde con código 200 y el pod cambia a 1/1 Ready.
+
+También se retrasó el livenessProbe para evitar que el contenedor sea reiniciado durante un arranque normal. El readinessProbe no elimina ni reinicia el pod; únicamente evita que reciba tráfico. El livenessProbe sí puede provocar el reinicio del contenedor cuando detecta fallos consecutivos.
+
+Aumentar solamente el número de réplicas no solucionaría una configuración incorrecta de las sondas. Todas las réplicas podrían permanecer no listas durante el mismo periodo o reiniciarse si el livenessProbe se ejecuta demasiado pronto. Esto aumentaría el consumo de CPU y memoria, pero no corregiría la causa del problema. Las réplicas aportan capacidad y redundancia, mientras que las sondas determinan cuándo cada pod está realmente preparado para recibir tráfico.
+
 **3. Escaneo de seguridad en el pipeline:**
 
+Construir imagen local → escanear con Trivy → publicar en GHCR
+
+**Modificar el job build-push del archivo `ci-cd.yml`**
+```yaml
+  build-push:
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir imagen local
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            .
+
+      - name: Escanear vulnerabilidades CRITICAL con Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: table
+          scanners: vuln
+          severity: CRITICAL
+          exit-code: '1'
+
+      - name: Login en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publicar imagen con hash
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Publicar imagen latest
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+```
+Subir los cambios a github
