@@ -757,3 +757,4 @@ git add .
 git commit -m "texto"
 git push
 ```
+![alt text](/images/tar-eliminado-Actions-bien.png)
