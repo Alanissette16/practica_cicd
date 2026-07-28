@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: cicd-practica-sd-blue
+  labels:
+    app: cicd-practica-sd-bg
+    track: blue
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: cicd-practica-sd-bg
+      track: blue
+
+  template:
+    metadata:
+      labels:
+        app: cicd-practica-sd-bg
+        track: blue
+
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/alanissette16/practica_cicd:4a8ce933cae79f1b1f1310daf03eee6c59749fd9
+
+          ports:
+            - containerPort: 3000
+
+          env:
+            - name: PORT
+              value: "3000"
+
+            - name: APP_VERSION
+              value: "v1"
+
+            - name: APP_COLOR
+              value: "blue"
+
+            - name: STARTUP_DELAY_SECONDS
+              value: "30"
+
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: inventario-app-secret
+                  key: API_KEY
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            timeoutSeconds: 1
+            failureThreshold: 12
+            successThreshold: 1
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

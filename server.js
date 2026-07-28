@@ -7,16 +7,43 @@ const APP_VERSION = process.env.APP_VERSION || 'v1';
 const APP_COLOR = process.env.APP_COLOR || 'blue';
 const SIMULATE_FAILURE = process.env.SIMULATE_FAILURE === 'true';
 
+const startupDelayValue = Number.parseInt(
+  process.env.STARTUP_DELAY_SECONDS || '0',
+  10
+);
+
+const STARTUP_DELAY_SECONDS =
+  Number.isFinite(startupDelayValue) && startupDelayValue > 0
+    ? startupDelayValue
+    : 0;
+
+const STARTED_AT = Date.now();
+
 function createApp() {
   const app = express();
   app.use(express.json());
   app.use(express.static(path.join(__dirname, 'public')));
 
   app.get('/health', (req, res) => {
-    if (SIMULATE_FAILURE || !db.canAccessDb()) {
-      return res.status(500).json({ status: 'error', reason: 'fallo simulado o base de datos no accesible' });
-    }
-    res.status(200).json({ status: 'ok' });
+  const elapsedSeconds = Math.floor((Date.now() - STARTED_AT) / 1000);
+
+  if (elapsedSeconds < STARTUP_DELAY_SECONDS) {
+    return res.status(503).json({
+      status: 'starting',
+      reason: 'la aplicación todavía está iniciando',
+      elapsedSeconds,
+      startupDelaySeconds: STARTUP_DELAY_SECONDS
+    });
+  }
+
+  if (SIMULATE_FAILURE || !db.canAccessDb()) {
+    return res.status(500).json({
+      status: 'error',
+      reason: 'fallo simulado o base de datos no accesible'
+    });
+  }
+
+  return res.status(200).json({ status: 'ok' });
   });
 
   app.get('/version', (req, res) => {
