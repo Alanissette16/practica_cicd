@@ -731,3 +731,29 @@ Construir imagen local → escanear con Trivy → publicar en GHCR
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 ```
 Subir los cambios a github
+```powershell
+git add .
+git commit -m "texto"
+git push
+```
+![alt text](/images/Trivy-funcionando.png)
+Hay un paquete tar que genero el error
+Se elimina el npm global
+**Modificar el archivo `Dockerfile`**
+```dockerfile
+RUN npm ci --omit=dev \
+    && npm cache clean --force \
+    && rm -rf /usr/local/lib/node_modules/npm \
+              /usr/local/bin/npm \
+              /usr/local/bin/npx
+```
+**Construir la imagen corregida localmente**
+```powershell
+ docker build -t inventario-app:trivy-fix .
+```
+Subir los cambios a github
+```powershell
+git add .
+git commit -m "texto"
+git push
+```
