@@ -48,6 +48,8 @@ npm test
 | `DB_PATH` | `./data/products.json` | Ruta del archivo de base de datos local. |
 
 # Guía de reproducción
+# Link Repo
+https://github.com/Alanissette16/practica_cicd.git
 
 ## Paso 1. Ejecutar y probar la aplicación localmente
 
